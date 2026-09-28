@@ -10,6 +10,8 @@ import {
   ChevronDown,
   X,
   HelpCircle,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { Joyride, STATUS, EVENTS, ACTIONS, type Step, type EventData } from "react-joyride";
@@ -174,7 +176,12 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
                 <tr key={company.id} data-tour={company.id === 1 ? "acme-row" : undefined} className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${company.status === "At Risk" ? "border-l-4 border-l-red-500" : ""}`} onClick={() => onCompanyClick(company)}>
                   <td className="px-4 py-4"><button className="text-sm font-medium hover:underline">{company.name}</button></td>
                   <td className="px-4 py-4"><StatusPill status={company.status} /></td>
-                  <td className="px-4 py-4"><span className={`text-sm font-medium ${company.revenueGrowth < 0 ? "text-red-600" : company.revenueGrowth < 10 ? "text-gray-900" : "text-green-600"}`}>{company.revenueGrowth > 0 ? "+" : ""}{company.revenueGrowth.toFixed(1)}%</span></td>
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center gap-0.5 text-sm font-medium ${company.revenueGrowth < 0 ? "text-red-600" : company.revenueGrowth < 10 ? "text-gray-900" : "text-green-600"}`}>
+                      {company.revenueGrowth > 0 ? "+" : ""}{company.revenueGrowth.toFixed(1)}%
+                      {company.revenueGrowth < 0 ? <ArrowDownRight className="w-3.5 h-3.5" strokeWidth={2.5} /> : company.revenueGrowth >= 10 ? <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={2.5} /> : null}
+                    </span>
+                  </td>
                   <td className="px-4 py-4"><span className={`text-sm font-medium ${company.runway < 6 ? "text-red-600" : company.runway < 12 ? "text-amber-600" : "text-gray-900"}`}>{company.runway.toFixed(1)} mo</span></td>
                   <td className="px-4 py-4"><span className={`text-sm font-medium ${company.burnMultiple > 3 ? "text-red-600" : company.burnMultiple > 2 ? "text-amber-600" : "text-gray-900"}`}>{company.burnMultiple.toFixed(1)}x</span></td>
                   <td className="px-4 py-4">
@@ -229,7 +236,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
               <StatusPill status={company.status} />
               <button className="text-sm text-blue-600 hover:underline">Override Status</button>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div data-tour="actions" className="flex flex-wrap gap-2">
               <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-700">Share Report</button>
               <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-700">Schedule Meeting</button>
               <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-700">Add Notes</button>
@@ -237,7 +244,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 text-sm text-gray-500">
             <span>Deal Owner: <span className="font-medium text-gray-900">{company.owner}</span></span>
-            <span>Last batch processed: Sep 28, 2026 2:14 PM</span>
+            <span data-tour="ingestion">Last batch processed: Sep 28, 2026 2:14 PM</span>
           </div>
         </div>
 
@@ -250,7 +257,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
             <div>
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">AI Summary</p>
               <p className="text-sm leading-relaxed text-gray-800">
-                Revenue growth turned negative in Q2 (-4.2% QoQ). Cash runway now at 4.1 months. Burn multiple climbed to 4.8x — the company is spending $4.80 for every $1 of net new ARR. Recommend immediate review.
+                Revenue growth turned negative in Q2 (-4.2% QoQ). Cash runway now at 4.1 months. Burn multiple climbed to 4.8x, meaning the company is spending $4.80 for every $1 of net new ARR. Recommend immediate review.
               </p>
             </div>
           </div>
@@ -259,7 +266,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
         {/* NL Query Bar */}
         <div data-tour="nl-query" className="mb-6">
           <div className="relative">
-            <input type="text" placeholder="AI assistant — what would you like to know about this company?" className="w-full h-12 pl-4 pr-12 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
+            <input type="text" placeholder="Ask the AI assistant about this company" className="w-full h-12 pl-4 pr-12 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
             <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg">
               <Send className="w-4 h-4 text-gray-400" />
             </button>
@@ -269,15 +276,15 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
 
         {/* Metric Cards */}
         <div data-tour="metric-tiles" className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <MetricCard title="Revenue Growth (QoQ)" value="-4.2%" status="At Risk" trend="down" />
-          <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" />
-          <MetricCard title="Burn Multiple" value="4.8x" status="At Risk" trend="up" />
+          <MetricCard title="Revenue Growth (QoQ)" value="-4.2%" status="At Risk" trend="down" direction="down" />
+          <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" direction="down" dataTour="runway-tile" />
+          <MetricCard title="Burn Multiple" value="4.8x" status="At Risk" trend="up" direction="up" />
         </div>
 
         {/* Chart */}
         <div data-tour="chart" className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 relative">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Cash Position — Last 30 Days</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Cash Position, Last 30 Days</h3>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <button className="text-sm font-medium text-gray-900">Chart</button>
@@ -386,17 +393,23 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
   );
 }
 
-function MetricCard({ title, value, status, trend }: { title: string; value: string; status: string; trend: string }) {
+function MetricCard({ title, value, status, trend, dataTour, direction }: { title: string; value: string; status: string; trend: string; dataTour?: string; direction: "up" | "down" }) {
   const trendData = trend === "up" ? [4, 5, 4.5, 6, 7, 6.5, 8] : trend === "down" ? [8, 7, 7.5, 6, 5, 5.5, 4] : [5, 5.5, 5, 6, 5.5, 6, 5.5];
+  const isBad = status === "At Risk";
+  const arrowColor = isBad ? "text-red-600" : "text-green-600";
+  const Arrow = direction === "up" ? ArrowUpRight : ArrowDownRight;
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div data-tour={dataTour} className="border border-gray-200 rounded-lg p-4">
       <div className="text-xs text-gray-500 mb-1">{title}</div>
       <div className="flex items-end justify-between mb-2">
-        <div className={`text-2xl font-bold ${status === "At Risk" ? "text-red-600" : "text-gray-900"}`}>{value}</div>
+        <div className="flex items-center gap-1">
+          <div className={`text-2xl font-bold ${isBad ? "text-red-600" : "text-gray-900"}`}>{value}</div>
+          <Arrow className={`w-5 h-5 ${arrowColor}`} strokeWidth={2.5} />
+        </div>
         <div className="h-8 w-16">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData.map((v, i) => ({ value: v, index: i }))}>
-              <Line type="monotone" dataKey="value" stroke={status === "At Risk" ? "#dc2626" : "#16a34a"} strokeWidth={1.5} dot={false} />
+              <Line type="monotone" dataKey="value" stroke={isBad ? "#dc2626" : "#16a34a"} strokeWidth={1.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -480,88 +493,106 @@ const tourSteps: Step[] = [
   {
     target: "body",
     placement: "center",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
       "Welcome to Portfolio Monitor",
-      "A portfolio-monitoring surface for institutional investors. Take 90 seconds to see how an analyst uses it."
+      "A dashboard for institutional investors and analysts to see how companies in the existing portfolio are performing on the metrics that matter. Take 90 seconds for the tour."
     ),
   },
   {
     target: '[data-tour="risk-tabs"]',
     placement: "bottom",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
       "Triage by risk",
-      "Companies auto-segment into three tiers by threshold rules. Analysts start each day on \"At Risk\" — the ones needing intervention this week."
+      "Companies auto-segment into three tiers by threshold rules. Analysts start each day on At Risk, the ones needing intervention."
     ),
   },
   {
     target: '[data-tour="companies-table"]',
     placement: "top",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
-      "Three signals that matter",
-      "Revenue Growth, Runway, and Burn Multiple. Colored inline so the eye finds trouble instantly: red = threshold breached, amber = watch, black = healthy."
+      "Three signals up top",
+      "The three signals that matter are surfaced at the top. This dashboard is configurable from settings to add or remove metrics. For now it shows Revenue Growth, Runway, and Burn Multiple. All color coded by threshold."
     ),
   },
   {
     target: '[data-tour="acme-row"]',
     placement: "bottom",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
-      "The worst offender",
-      "Acme is red on all three metrics. Click Next to drill in — we'll walk through the company view together."
+      "Sorted by risk",
+      "The model ranks companies by how urgently they need intervention. Acme sits at the top. Click Next to drill into it."
+    ),
+  },
+  {
+    target: '[data-tour="ingestion"]',
+    placement: "bottom",
+    skipBeacon: true,
+    content: stepBody(
+      "How the data gets here",
+      "APIs pull data from company databases in near real time, normalize it, and write it to the local store. The timestamp shows when the last batch ran."
     ),
   },
   {
     target: '[data-tour="ai-summary"]',
     placement: "bottom",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
       "One-sentence briefing",
       "The model reads the underlying signals and writes a plain-English summary. Analysts land on the page and know the situation in five seconds."
     ),
   },
   {
+    target: '[data-tour="actions"]',
+    placement: "bottom",
+    skipBeacon: true,
+    content: stepBody(
+      "Act without leaving the page",
+      "Share Report generates a PDF and emails it. Schedule Meeting books a call with the deal owner. Add Notes captures follow-ups against the company record."
+    ),
+  },
+  {
     target: '[data-tour="nl-query"]',
     placement: "bottom",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
-      "Ask a follow-up",
-      "Analysts don't stop at the dashboard. Ask \"what changed in Q2?\" or \"which cohort is churning?\" without pinging the data team."
+      "Ask the model",
+      "Query the company in natural language. What changed in Q2? Which cohort is churning? No pinging the data team."
     ),
   },
   {
     target: '[data-tour="metric-tiles"]',
     placement: "top",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
-      "The signals up close",
-      "Each metric with its trailing sparkline. Every tile is red — the same threshold logic as the dashboard, applied to this company."
+      "The three signals up close",
+      "Each metric with its trailing sparkline and a directional arrow. Down for Revenue Growth and Runway, up for Burn Multiple. All three fire on this company."
     ),
   },
   {
-    target: '[data-tour="chart"]',
-    placement: "top",
-    disableBeacon: true,
+    target: '[data-tour="runway-tile"]',
+    placement: "bottom",
+    skipBeacon: true,
     content: stepBody(
-      "See the pattern",
-      "30-day cash trajectory. Orange pins mark the moment thresholds were breached. Click a pin for the alert detail."
+      "Runway explains the chart",
+      "Runway sits at 4.1 months. The Cash Position chart below shows why: 30 days of accelerating burn. Orange pins mark the moments thresholds tripped; click a pin for the alert detail."
     ),
   },
   {
     target: '[data-tour="notes"]',
     placement: "top",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
       "Team memory",
-      "What the deal owner heard on the last call. Portfolio decisions live and die on this context — the tool keeps it next to the data."
+      "What the deal owner heard on the last call. Portfolio decisions live and die on this context. The same alerts can also fire to WhatsApp and email for the analyst and deal owner."
     ),
   },
   {
     target: '[data-tour="bell"]',
     placement: "bottom",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
       "Push, don't pull",
       "Alerts fire as thresholds trip. Analysts don't need to check the dashboard to know something changed."
@@ -570,10 +601,10 @@ const tourSteps: Step[] = [
   {
     target: "body",
     placement: "center",
-    disableBeacon: true,
+    skipBeacon: true,
     content: stepBody(
       "Take a look around",
-      "Every threshold, alert type, and metric is configurable. Restart the tour anytime from the \"Take the tour\" button in the top bar."
+      "Every threshold, metric, and alert type is configurable. Restart this tour anytime from the Take the tour button up top."
     ),
   },
 ];
@@ -657,20 +688,21 @@ export default function App() {
         run={runTour}
         stepIndex={tourStep}
         continuous
-        showProgress
-        showSkipButton
-        disableOverlayClose
         scrollToFirstStep
-        scrollOffset={80}
         onEvent={handleTourEvent}
         locale={{ back: "Back", close: "Close", last: "Done", next: "Next", skip: "Skip tour" }}
+        options={{
+          primaryColor: "#111827",
+          textColor: "#111827",
+          zIndex: 10000,
+          arrowColor: "#ffffff",
+          overlayClickAction: false,
+          scrollOffset: 80,
+          showProgress: true,
+          buttons: ["back", "skip", "primary"],
+          skipBeacon: true,
+        }}
         styles={{
-          options: {
-            primaryColor: "#111827",
-            textColor: "#111827",
-            zIndex: 10000,
-            arrowColor: "#ffffff",
-          },
           tooltip: { borderRadius: 12, padding: 20 },
           tooltipContent: { fontSize: 14, lineHeight: 1.55, padding: 0, textAlign: "left" as const },
           buttonNext: { backgroundColor: "#111827", borderRadius: 6, fontSize: 13, padding: "8px 14px" },
