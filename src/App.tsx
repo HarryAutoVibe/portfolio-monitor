@@ -248,7 +248,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
         {/* NL Query Bar */}
         <div className="mb-6">
           <div className="relative">
-            <input type="text" placeholder="Ask a question about this company..." className="w-full h-12 pl-4 pr-12 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
+            <input type="text" placeholder="AI assistant — what would you like to know about this company?" className="w-full h-12 pl-4 pr-12 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
             <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg">
               <Send className="w-4 h-4 text-gray-400" />
             </button>
