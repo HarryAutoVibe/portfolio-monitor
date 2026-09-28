@@ -12,6 +12,9 @@ import {
   HelpCircle,
   ArrowUpRight,
   ArrowDownRight,
+  Share2,
+  CalendarPlus,
+  StickyNote,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { Joyride, STATUS, EVENTS, ACTIONS, type Step, type EventData } from "react-joyride";
@@ -90,11 +93,12 @@ function TopBar({ onNotificationClick, onLogoClick, onStartTour }: { onNotificat
         <button
           data-tour="restart-tour"
           onClick={onStartTour}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           title="Take the guided tour"
+          aria-label="Take the guided tour"
         >
-          <HelpCircle className="w-4 h-4" />
-          Take the tour
+          <HelpCircle className="w-5 h-5 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">Take the tour</span>
         </button>
         <div className="relative" data-tour="bell">
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" onClick={onNotificationClick}>
@@ -157,7 +161,45 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
         </div>
       </div>
       <div className="p-4 sm:p-6">
-        <div data-tour="companies-table" className="border border-gray-200 rounded-lg overflow-x-auto">
+        {/* Mobile: card view */}
+        <div data-tour="companies-table" className="md:hidden space-y-3">
+          {companiesData.map((company) => (
+            <button
+              key={company.id}
+              data-tour={company.id === 1 ? "acme-row" : undefined}
+              onClick={() => onCompanyClick(company)}
+              className={`w-full text-left bg-white border rounded-lg p-3 hover:bg-gray-50 ${company.status === "At Risk" ? "border-l-4 border-l-red-500 border-gray-200" : "border-gray-200"}`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-gray-900 truncate">{company.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{company.owner} · {company.lastUpdated}</div>
+                </div>
+                <StatusPill status={company.status} />
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">
+                <div>
+                  <div className="text-[10px] text-gray-500">Growth</div>
+                  <div className={`inline-flex items-center gap-0.5 text-sm font-semibold ${company.revenueGrowth < 0 ? "text-red-600" : company.revenueGrowth < 10 ? "text-gray-900" : "text-green-600"}`}>
+                    {company.revenueGrowth > 0 ? "+" : ""}{company.revenueGrowth.toFixed(1)}%
+                    {company.revenueGrowth < 0 ? <ArrowDownRight className="w-3 h-3" strokeWidth={2.5} /> : company.revenueGrowth >= 10 ? <ArrowUpRight className="w-3 h-3" strokeWidth={2.5} /> : null}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500">Runway</div>
+                  <div className={`text-sm font-semibold ${company.runway < 6 ? "text-red-600" : company.runway < 12 ? "text-amber-600" : "text-gray-900"}`}>{company.runway.toFixed(1)} mo</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500">Burn</div>
+                  <div className={`text-sm font-semibold ${company.burnMultiple > 3 ? "text-red-600" : company.burnMultiple > 2 ? "text-amber-600" : "text-gray-900"}`}>{company.burnMultiple.toFixed(1)}x</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop: table view */}
+        <div className="hidden md:block border border-gray-200 rounded-lg overflow-x-auto">
           <table className="w-full min-w-[820px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -216,6 +258,8 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
 // Screen 2: Company View
 function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStartTour }: any) {
   const [activeAlertPopup, setActiveAlertPopup] = useState<number | null>(null);
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<number>>(new Set());
+  const activeAlert = activeAlertPopup === null ? null : alertDetails.find(a => a.day === activeAlertPopup) ?? null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -231,15 +275,24 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
         {/* Header with actions */}
         <div className="mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{company.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-lg sm:text-3xl font-bold text-gray-900">{company.name}</h1>
               <StatusPill status={company.status} />
-              <button className="text-sm text-blue-600 hover:underline">Override Status</button>
+              <button className="text-xs sm:text-sm text-blue-600 hover:underline">Override Status</button>
             </div>
-            <div data-tour="actions" className="flex flex-wrap gap-2">
-              <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-700">Share Report</button>
-              <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-700">Schedule Meeting</button>
-              <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-700">Add Notes</button>
+            <div data-tour="actions" className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+              <button className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-50 text-gray-700">
+                <Share2 className="w-4 h-4" />
+                <span>Share<span className="hidden sm:inline"> Report</span></span>
+              </button>
+              <button className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-50 text-gray-700">
+                <CalendarPlus className="w-4 h-4" />
+                <span><span className="sm:hidden">Meet</span><span className="hidden sm:inline">Schedule Meeting</span></span>
+              </button>
+              <button className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-50 text-gray-700">
+                <StickyNote className="w-4 h-4" />
+                <span><span className="sm:hidden">Notes</span><span className="hidden sm:inline">Add Notes</span></span>
+              </button>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 text-sm text-gray-500">
@@ -275,9 +328,9 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
         </div>
 
         {/* Metric Cards */}
-        <div data-tour="metric-tiles" className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <MetricCard title="Revenue Growth (QoQ)" value="-4.2%" status="At Risk" trend="down" direction="down" />
-          <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" direction="down" dataTour="runway-tile" />
+        <div data-tour="metric-tiles" className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+          <MetricCard title="Revenue Growth" value="-4.2%" status="At Risk" trend="down" direction="down" />
+          <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" direction="down" dataTour="runway-tile" highlight highlightNote="See chart" />
           <MetricCard title="Burn Multiple" value="4.8x" status="At Risk" trend="up" direction="up" />
         </div>
 
@@ -309,61 +362,40 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
                   strokeWidth={2}
                   dot={(props: any) => {
                     const { cx, cy, index, payload } = props;
-                    if (payload.hasAlert) {
-                      return (
+                    if (!payload.hasAlert) return <circle key={index} cx={cx} cy={cy} r={0} fill="none" />;
+                    const isAck = acknowledgedAlerts.has(payload.day);
+                    const openAlert = (e: any) => {
+                      e.stopPropagation();
+                      setActiveAlertPopup(activeAlertPopup === payload.day ? null : payload.day);
+                    };
+                    return (
+                      <g key={index} style={{ cursor: "pointer" }}>
                         <circle
-                          key={index}
                           cx={cx}
                           cy={cy}
-                          r={6}
-                          fill="#fb923c"
-                          stroke="#fff"
-                          strokeWidth={2}
-                          className="cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveAlertPopup(activeAlertPopup === payload.day ? null : payload.day);
-                          }}
+                          r={22}
+                          fill="transparent"
+                          onClick={openAlert}
+                          onTouchStart={openAlert}
                         />
-                      );
-                    }
-                    return <circle key={index} cx={cx} cy={cy} r={0} fill="none" />;
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={10}
+                          fill={isAck ? "#9ca3af" : "#fb923c"}
+                          stroke="#fff"
+                          strokeWidth={2.5}
+                          pointerEvents="none"
+                        />
+                      </g>
+                    );
                   }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Alert popup tooltip */}
-          {activeAlertPopup && (
-            <div className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72 max-w-[calc(100vw-2rem)] z-10" style={{ top: activeAlertPopup === 11 ? "80px" : "140px", left: activeAlertPopup === 11 ? "280px" : "580px" }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase">Alert Detail</span>
-                <button onClick={() => setActiveAlertPopup(null)} className="p-0.5 hover:bg-gray-100 rounded">
-                  <X className="w-3.5 h-3.5 text-gray-400" />
-                </button>
-              </div>
-              <p className="text-sm font-semibold text-gray-900 mb-1">
-                {alertDetails.find(a => a.day === activeAlertPopup)?.title}
-              </p>
-              <p className="text-xs text-gray-500 mb-2">
-                {alertDetails.find(a => a.day === activeAlertPopup)?.timestamp}
-              </p>
-              <div className="mb-3">
-                <StatusPill status="Critical" />
-              </div>
-              <div className="flex gap-2">
-                <button className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50 font-medium">Acknowledge</button>
-                <button className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50 font-medium flex items-center gap-1">
-                  Dismiss <ChevronDown className="w-3 h-3" />
-                </button>
-              </div>
-              {/* Arrow pointing to dot */}
-              <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45" />
-            </div>
-          )}
-
-          <p className="text-xs text-gray-400 mt-2">Click orange dots to view alert details</p>
+          <p className="text-xs text-gray-400 mt-2">Tap orange dots to view alert details</p>
         </div>
 
         {/* Notes & History */}
@@ -389,24 +421,64 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
           </div>
         </div>
       </div>
+
+      {/* Alert detail modal */}
+      {activeAlert && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setActiveAlertPopup(null)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-sm bg-white border border-gray-200 rounded-xl shadow-2xl p-5 z-50">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Alert Detail</span>
+              <button onClick={() => setActiveAlertPopup(null)} className="p-1 hover:bg-gray-100 rounded" aria-label="Close">
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+            <p className="text-base font-semibold text-gray-900 mb-1">{activeAlert.title}</p>
+            <p className="text-xs text-gray-500 mb-3">{activeAlert.timestamp}</p>
+            <div className="mb-4">
+              <StatusPill status="Critical" />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setAcknowledgedAlerts(prev => new Set(prev).add(activeAlertPopup!));
+                  setActiveAlertPopup(null);
+                }}
+                className="flex-1 px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium"
+              >
+                Acknowledge
+              </button>
+              <button
+                onClick={() => setActiveAlertPopup(null)}
+                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function MetricCard({ title, value, status, trend, dataTour, direction }: { title: string; value: string; status: string; trend: string; dataTour?: string; direction: "up" | "down" }) {
+function MetricCard({ title, value, status, trend, dataTour, direction, highlight, highlightNote }: { title: string; value: string; status: string; trend: string; dataTour?: string; direction: "up" | "down"; highlight?: boolean; highlightNote?: string }) {
   const trendData = trend === "up" ? [4, 5, 4.5, 6, 7, 6.5, 8] : trend === "down" ? [8, 7, 7.5, 6, 5, 5.5, 4] : [5, 5.5, 5, 6, 5.5, 6, 5.5];
   const isBad = status === "At Risk";
   const arrowColor = isBad ? "text-red-600" : "text-green-600";
   const Arrow = direction === "up" ? ArrowUpRight : ArrowDownRight;
   return (
-    <div data-tour={dataTour} className="border border-gray-200 rounded-lg p-4">
-      <div className="text-xs text-gray-500 mb-1">{title}</div>
+    <div
+      data-tour={dataTour}
+      className={`border rounded-lg p-3 sm:p-4 ${highlight ? "border-red-300 ring-2 ring-red-100" : "border-gray-200"}`}
+    >
+      <div className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">{title}</div>
       <div className="flex items-end justify-between mb-2">
-        <div className="flex items-center gap-1">
-          <div className={`text-2xl font-bold ${isBad ? "text-red-600" : "text-gray-900"}`}>{value}</div>
-          <Arrow className={`w-5 h-5 ${arrowColor}`} strokeWidth={2.5} />
+        <div className="flex items-center gap-0.5 sm:gap-1 min-w-0">
+          <div className={`text-lg sm:text-2xl font-bold truncate ${isBad ? "text-red-600" : "text-gray-900"}`}>{value}</div>
+          <Arrow className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${arrowColor}`} strokeWidth={2.5} />
         </div>
-        <div className="h-8 w-16">
+        <div className="hidden sm:block h-8 w-16">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData.map((v, i) => ({ value: v, index: i }))}>
               <Line type="monotone" dataKey="value" stroke={isBad ? "#dc2626" : "#16a34a"} strokeWidth={1.5} dot={false} />
@@ -415,6 +487,12 @@ function MetricCard({ title, value, status, trend, dataTour, direction }: { titl
         </div>
       </div>
       <StatusPill status={status as RiskStatus} />
+      {highlightNote && (
+        <div className="mt-2 flex items-center gap-1 text-[10px] sm:text-xs text-red-600 font-medium">
+          {highlightNote}
+          <ArrowDownRight className="w-3 h-3" strokeWidth={2.5} />
+        </div>
+      )}
     </div>
   );
 }
@@ -489,6 +567,16 @@ const stepBody = (title: string, body: string) => (
   </div>
 );
 
+// Pick the first VISIBLE element matching a data-tour attribute. Needed because
+// we render mobile and desktop layouts side by side and toggle their visibility.
+const pickVisibleTarget = (name: string) => (): HTMLElement | null => {
+  const els = document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`);
+  for (const el of Array.from(els)) {
+    if (el.offsetParent !== null) return el;
+  }
+  return els[0] ?? null;
+};
+
 const tourSteps: Step[] = [
   {
     target: "body",
@@ -509,7 +597,7 @@ const tourSteps: Step[] = [
     ),
   },
   {
-    target: '[data-tour="companies-table"]',
+    target: pickVisibleTarget("companies-table"),
     placement: "top",
     skipBeacon: true,
     content: stepBody(
@@ -518,7 +606,7 @@ const tourSteps: Step[] = [
     ),
   },
   {
-    target: '[data-tour="acme-row"]',
+    target: pickVisibleTarget("acme-row"),
     placement: "bottom",
     skipBeacon: true,
     content: stepBody(
@@ -550,7 +638,7 @@ const tourSteps: Step[] = [
     skipBeacon: true,
     content: stepBody(
       "Act without leaving the page",
-      "Share Report generates a PDF and emails it. Schedule Meeting books a call with the deal owner. Add Notes captures follow-ups against the company record."
+      "Share Report generates a PDF and emails it. Schedule Meeting books a call with the company. Add Notes captures follow-ups against the company record."
     ),
   },
   {
@@ -558,8 +646,8 @@ const tourSteps: Step[] = [
     placement: "bottom",
     skipBeacon: true,
     content: stepBody(
-      "Ask the model",
-      "Query the company in natural language. What changed in Q2? Which cohort is churning? No pinging the data team."
+      "Ask the AI assistant",
+      "Learn more about the company in natural language. What changed in Q2? Which cohort is churning? No pinging the data team."
     ),
   },
   {
