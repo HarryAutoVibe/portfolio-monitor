@@ -19,9 +19,9 @@ interface CompanyData {
   id: number;
   name: string;
   status: RiskStatus;
-  ratio: number;
-  stableCurrency: number;
-  velocity: number;
+  revenueGrowth: number;   // QoQ %
+  runway: number;          // months
+  burnMultiple: number;    // net burn / net new ARR (higher = worse)
   owner: string;
   ownerAvatar: string;
   lastUpdated: string;
@@ -38,12 +38,12 @@ interface Notification {
 
 // Mock data
 const companiesData: CompanyData[] = [
-  { id: 1, name: "Acme Industries Ltd.", status: "At Risk", ratio: 0.84, stableCurrency: 16, velocity: -8.4, owner: "Sarah Chen", ownerAvatar: "SC", lastUpdated: "12 min ago" },
-  { id: 2, name: "Northwind Trading Co.", status: "At Risk", ratio: 0.79, stableCurrency: 22, velocity: -5.2, owner: "Marcus Lee", ownerAvatar: "ML", lastUpdated: "23 min ago" },
-  { id: 3, name: "Globex Logistics", status: "At Risk", ratio: 0.72, stableCurrency: 18, velocity: -4.1, owner: "Sarah Chen", ownerAvatar: "SC", lastUpdated: "1 hr ago" },
-  { id: 4, name: "Apex Software", status: "Needs Attention", ratio: 0.58, stableCurrency: 64, velocity: -1.8, owner: "Priya Sharma", ownerAvatar: "PS", lastUpdated: "2 hrs ago" },
-  { id: 5, name: "Helios Capital", status: "Needs Attention", ratio: 0.55, stableCurrency: 71, velocity: -0.9, owner: "Marcus Lee", ownerAvatar: "ML", lastUpdated: "3 hrs ago" },
-  { id: 6, name: "Riverstone Partners", status: "On Track", ratio: 0.42, stableCurrency: 82, velocity: 1.4, owner: "Priya Sharma", ownerAvatar: "PS", lastUpdated: "5 hrs ago" },
+  { id: 1, name: "Acme Industries Ltd.", status: "At Risk", revenueGrowth: -4.2, runway: 4.1, burnMultiple: 4.8, owner: "Sarah Chen", ownerAvatar: "SC", lastUpdated: "12 min ago" },
+  { id: 2, name: "Northwind Trading Co.", status: "At Risk", revenueGrowth: -1.8, runway: 5.6, burnMultiple: 3.9, owner: "Marcus Lee", ownerAvatar: "ML", lastUpdated: "23 min ago" },
+  { id: 3, name: "Globex Logistics", status: "At Risk", revenueGrowth: 2.1, runway: 6.2, burnMultiple: 3.1, owner: "Sarah Chen", ownerAvatar: "SC", lastUpdated: "1 hr ago" },
+  { id: 4, name: "Apex Software", status: "Needs Attention", revenueGrowth: 8.4, runway: 9.3, burnMultiple: 2.4, owner: "Priya Sharma", ownerAvatar: "PS", lastUpdated: "2 hrs ago" },
+  { id: 5, name: "Helios Capital", status: "Needs Attention", revenueGrowth: 12.6, runway: 10.8, burnMultiple: 2.1, owner: "Marcus Lee", ownerAvatar: "ML", lastUpdated: "3 hrs ago" },
+  { id: 6, name: "Riverstone Partners", status: "On Track", revenueGrowth: 34.2, runway: 22, burnMultiple: 0.9, owner: "Priya Sharma", ownerAvatar: "PS", lastUpdated: "5 hrs ago" },
 ];
 
 const chartData = Array.from({ length: 30 }, (_, i) => {
@@ -54,17 +54,17 @@ const chartData = Array.from({ length: 30 }, (_, i) => {
 });
 
 const alertDetails = [
-  { day: 11, title: "Stable Currency Ratio below 20%", timestamp: "May 16, 2026 at 3:42 PM", severity: "Critical" },
-  { day: 24, title: "Balance declined by 8.4% in 7 days", timestamp: "May 23, 2026 at 9:15 AM", severity: "Critical" },
+  { day: 11, title: "Runway crossed 6-month threshold", timestamp: "Sep 12, 2026 at 3:42 PM", severity: "Critical" },
+  { day: 24, title: "Net burn accelerated 40% WoW", timestamp: "Sep 25, 2026 at 9:15 AM", severity: "Critical" },
 ];
 
 const notificationsData: Notification[] = [
-  { id: 1, companyName: "Acme Industries Ltd.", description: "Stable Currency Ratio dropped below 20% threshold", severity: "red", timestamp: "2 hours ago", isRead: false },
-  { id: 2, companyName: "Northwind Trading Co.", description: "Balance Velocity declined by 5.2% in the last 7 days", severity: "red", timestamp: "3 hours ago", isRead: false },
-  { id: 3, companyName: "Apex Software", description: "Balance Velocity showing negative trend", severity: "yellow", timestamp: "5 hours ago", isRead: false },
-  { id: 4, companyName: "Helios Capital", description: "Loan/Balance Ratio approaching threshold", severity: "yellow", timestamp: "1 day ago", isRead: true },
-  { id: 5, companyName: "Riverstone Partners", description: "Balance velocity improved to +1.4%", severity: "green", timestamp: "1 day ago", isRead: true },
-  { id: 6, companyName: "Acme Industries Ltd.", description: "XAF account balance declined significantly", severity: "red", timestamp: "2 days ago", isRead: true },
+  { id: 1, companyName: "Acme Industries Ltd.", description: "Runway dropped below 6 months (now 4.1 mo)", severity: "red", timestamp: "2 hours ago", isRead: false },
+  { id: 2, companyName: "Northwind Trading Co.", description: "Burn multiple climbed to 3.9x this quarter", severity: "red", timestamp: "3 hours ago", isRead: false },
+  { id: 3, companyName: "Apex Software", description: "Net revenue retention slipped for a second quarter", severity: "yellow", timestamp: "5 hours ago", isRead: false },
+  { id: 4, companyName: "Helios Capital", description: "Approaching 12-month runway threshold", severity: "yellow", timestamp: "1 day ago", isRead: true },
+  { id: 5, companyName: "Riverstone Partners", description: "ARR growth accelerated to +34% QoQ", severity: "green", timestamp: "1 day ago", isRead: true },
+  { id: 6, companyName: "Acme Industries Ltd.", description: "New cohort churn exceeded 5% threshold", severity: "red", timestamp: "2 days ago", isRead: true },
 ];
 
 function TopBar({ onNotificationClick, onLogoClick }: { onNotificationClick?: () => void; onLogoClick?: () => void }) {
@@ -74,7 +74,7 @@ function TopBar({ onNotificationClick, onLogoClick }: { onNotificationClick?: ()
         <div className="w-8 h-8 bg-gray-900 rounded-md flex items-center justify-center">
           <div className="w-4 h-4 border-2 border-white rounded-sm" />
         </div>
-        <span className="text-lg font-semibold text-gray-900">Liquidity</span>
+        <span className="text-lg font-semibold text-gray-900">Portfolio Monitor</span>
       </button>
       <div className="flex-1 min-w-0 max-w-xl mx-3 sm:mx-8">
         <div className="relative">
@@ -150,9 +150,9 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Company Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Risk Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Loan/Balance Ratio</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Stable Currency %</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Balance Velocity 7d</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue Growth (QoQ)</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Runway (mo)</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Burn Multiple</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deal Owner</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Updated</th>
                 <th className="w-10"></th>
@@ -163,9 +163,9 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }
                 <tr key={company.id} className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${company.status === "At Risk" ? "border-l-4 border-l-red-500" : ""}`} onClick={() => onCompanyClick(company)}>
                   <td className="px-4 py-4"><button className="text-sm font-medium hover:underline">{company.name}</button></td>
                   <td className="px-4 py-4"><StatusPill status={company.status} /></td>
-                  <td className="px-4 py-4"><span className={`text-sm font-medium ${company.ratio >= 0.7 ? "text-red-600" : "text-gray-900"}`}>{company.ratio.toFixed(2)}</span></td>
-                  <td className="px-4 py-4"><span className="text-sm">{company.stableCurrency}%</span></td>
-                  <td className="px-4 py-4"><span className={`text-sm font-medium ${company.velocity < 0 ? "text-red-600" : "text-green-600"}`}>{company.velocity > 0 ? "+" : ""}{company.velocity.toFixed(1)}%</span></td>
+                  <td className="px-4 py-4"><span className={`text-sm font-medium ${company.revenueGrowth < 0 ? "text-red-600" : company.revenueGrowth < 10 ? "text-gray-900" : "text-green-600"}`}>{company.revenueGrowth > 0 ? "+" : ""}{company.revenueGrowth.toFixed(1)}%</span></td>
+                  <td className="px-4 py-4"><span className={`text-sm font-medium ${company.runway < 6 ? "text-red-600" : company.runway < 12 ? "text-amber-600" : "text-gray-900"}`}>{company.runway.toFixed(1)} mo</span></td>
+                  <td className="px-4 py-4"><span className={`text-sm font-medium ${company.burnMultiple > 3 ? "text-red-600" : company.burnMultiple > 2 ? "text-amber-600" : "text-gray-900"}`}>{company.burnMultiple.toFixed(1)}x</span></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <Avatar initials={company.ownerAvatar} />
@@ -226,7 +226,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 text-sm text-gray-500">
             <span>Deal Owner: <span className="font-medium text-gray-900">{company.owner}</span></span>
-            <span>Last batch processed: May 26, 2026 2:14 PM</span>
+            <span>Last batch processed: Sep 28, 2026 2:14 PM</span>
           </div>
         </div>
 
@@ -239,7 +239,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
             <div>
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">AI Summary</p>
               <p className="text-sm leading-relaxed text-gray-800">
-                Cash position has declined 18% over the past 7 days, primarily driven by a drop in the Cameroon XAF account. Stable currency ratio has fallen below the 20% threshold. Recommend immediate review.
+                Revenue growth turned negative in Q2 (-4.2% QoQ). Cash runway now at 4.1 months. Burn multiple climbed to 4.8x — the company is spending $4.80 for every $1 of net new ARR. Recommend immediate review.
               </p>
             </div>
           </div>
@@ -253,20 +253,20 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
               <Send className="w-4 h-4 text-gray-400" />
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2">e.g. What is the monthly cash burn? Which accounts are declining?</p>
+          <p className="text-xs text-gray-400 mt-2">e.g. What is the monthly burn rate? Which cohorts are churning?</p>
         </div>
 
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <MetricCard title="Loan/Balance Ratio" value="0.84" status="At Risk" trend="up" />
-          <MetricCard title="Stable Currency %" value="16%" status="At Risk" trend="down" />
-          <MetricCard title="Balance Velocity 7d" value="-8.4%" status="At Risk" trend="down" />
+          <MetricCard title="Revenue Growth (QoQ)" value="-4.2%" status="At Risk" trend="down" />
+          <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" />
+          <MetricCard title="Burn Multiple" value="4.8x" status="At Risk" trend="up" />
         </div>
 
         {/* Chart */}
         <div className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 relative">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">30 Day Balance Trend</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Cash Position — Last 30 Days</h3>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <button className="text-sm font-medium text-gray-900">Chart</button>
@@ -353,10 +353,10 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes &amp; History</h3>
           <div className="space-y-3">
             <div className="border-l-2 border-gray-200 pl-4 py-2">
-              <p className="text-sm"><span className="font-medium">Sarah Chen</span>, May 22: Spoke to CFO, expects recovery by end of month.</p>
+              <p className="text-sm"><span className="font-medium">Sarah Chen</span>, Sep 22: Spoke to CFO. Cost-reduction plan targets a 30% burn cut by Q4.</p>
             </div>
             <div className="border-l-2 border-gray-200 pl-4 py-2">
-              <p className="text-sm"><span className="font-medium">Marcus Lee</span>, May 20: Flagged declining XAF balance, monitoring.</p>
+              <p className="text-sm"><span className="font-medium">Marcus Lee</span>, Sep 20: Flagged Q2 growth deceleration, watching pipeline conversion.</p>
             </div>
           </div>
         </div>
@@ -365,9 +365,9 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Recent Alerts</h3>
           <div className="space-y-3">
-            <AlertItem severity="red" title="Stable Currency Ratio below 20%" timestamp="2 hours ago" />
-            <AlertItem severity="red" title="Balance declined by 8.4% in 7 days" timestamp="1 day ago" />
-            <AlertItem severity="yellow" title="XAF account showing decline pattern" timestamp="3 days ago" />
+            <AlertItem severity="red" title="Runway crossed 6-month threshold" timestamp="2 hours ago" />
+            <AlertItem severity="red" title="Net burn accelerated 40% WoW" timestamp="1 day ago" />
+            <AlertItem severity="yellow" title="New cohort churn exceeded 5%" timestamp="3 days ago" />
           </div>
         </div>
       </div>
