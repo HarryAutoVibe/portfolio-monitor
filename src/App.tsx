@@ -53,17 +53,92 @@ const companiesData: CompanyData[] = [
   { id: 6, name: "Riverstone Partners", status: "On Track", revenueGrowth: 34.2, runway: 22, burnMultiple: 0.9, owner: "Priya Sharma", ownerAvatar: "PS", lastUpdated: "5 hrs ago" },
 ];
 
-const chartData = Array.from({ length: 30 }, (_, i) => {
-  const t = i / 29;
-  const base = 9.3 - 1.7 * (t * t * 0.6 + t * 0.4);
-  const noise = [0, 0.04, -0.03, 0.05, -0.02, 0.06, -0.04, 0.03, -0.05, 0.02, -0.06, 0.04, -0.03, 0.05, -0.07, 0.03, -0.04, 0.06, -0.05, 0.02, -0.08, 0.03, -0.06, 0.04, -0.09, 0.02, -0.07, 0.03, -0.05, 0][i];
-  return { day: i + 1, balance: Math.round((base + noise) * 100) / 100, hasAlert: i === 10 || i === 23 };
-});
+// Per-metric threshold status
+const growthStatus = (g: number): RiskStatus => (g < 0 ? "At Risk" : g < 10 ? "Needs Attention" : "On Track");
+const runwayStatus = (r: number): RiskStatus => (r < 6 ? "At Risk" : r < 12 ? "Needs Attention" : "On Track");
+const burnStatus = (b: number): RiskStatus => (b > 3 ? "At Risk" : b > 2 ? "Needs Attention" : "On Track");
 
-const alertDetails = [
-  { day: 11, title: "Runway crossed 6-month threshold", timestamp: "Sep 12, 2026 at 3:42 PM", severity: "Critical" },
-  { day: 24, title: "Net burn accelerated 40% WoW", timestamp: "Sep 25, 2026 at 9:15 AM", severity: "Critical" },
-];
+const chartDataFor = (company: CompanyData) => {
+  const isHealthy = company.status === "On Track";
+  const isWatch = company.status === "Needs Attention";
+  const start = isHealthy ? 6.4 : 9.3;
+  const end = isHealthy ? 9.6 : isWatch ? 8.4 : 7.4;
+  return Array.from({ length: 30 }, (_, i) => {
+    const t = i / 29;
+    const base = start + (end - start) * (t * t * 0.6 + t * 0.4);
+    const noise = (((i * 13 + 7) % 17) - 8) * 0.008;
+    const hasAlert = company.status === "At Risk" ? (i === 10 || i === 23) : isWatch ? i === 20 : false;
+    return { day: i + 1, balance: Math.round((base + noise) * 100) / 100, hasAlert };
+  });
+};
+
+const chartDomainFor = (company: CompanyData): [number, number] => {
+  if (company.status === "On Track") return [6.0, 10.0];
+  if (company.status === "Needs Attention") return [8.0, 9.5];
+  return [7.2, 9.5];
+};
+
+const alertDetailsFor = (company: CompanyData) => {
+  if (company.status === "On Track") return [];
+  if (company.status === "Needs Attention") {
+    return [{ day: 21, title: "Runway approached 12-month threshold", timestamp: "Sep 25, 2026 at 10:00 AM", severity: "Critical" }];
+  }
+  return [
+    { day: 11, title: "Runway crossed 6-month threshold", timestamp: "Sep 12, 2026 at 3:42 PM", severity: "Critical" },
+    { day: 24, title: "Net burn accelerated 40% WoW", timestamp: "Sep 25, 2026 at 9:15 AM", severity: "Critical" },
+  ];
+};
+
+const summaryFor = (c: CompanyData): string => {
+  const growthStr = `${c.revenueGrowth > 0 ? "+" : ""}${c.revenueGrowth.toFixed(1)}%`;
+  if (c.status === "On Track") {
+    return `Revenue growth strong at ${growthStr} QoQ. Cash runway ${c.runway.toFixed(1)} months provides a comfortable buffer. Burn multiple ${c.burnMultiple.toFixed(1)}x means the company generates $${(1 / c.burnMultiple).toFixed(2)} of net new ARR for every $1 of burn. Tracking well.`;
+  }
+  if (c.status === "Needs Attention") {
+    return `Revenue growth at ${growthStr} QoQ, slower than target. Cash runway ${c.runway.toFixed(1)} months, watching closely. Burn multiple ${c.burnMultiple.toFixed(1)}x is above the efficient range. Recommend follow-up with CFO this month.`;
+  }
+  return `Revenue growth ${growthStr} QoQ. Cash runway now at ${c.runway.toFixed(1)} months. Burn multiple climbed to ${c.burnMultiple.toFixed(1)}x, meaning the company is spending $${c.burnMultiple.toFixed(2)} for every $1 of net new ARR. Recommend immediate review.`;
+};
+
+const notesFor = (c: CompanyData) => {
+  if (c.status === "On Track") {
+    return [
+      { by: c.owner, date: "Sep 22", text: "Board update: expansion into two new regions ahead of plan." },
+      { by: c.owner, date: "Sep 15", text: "Q3 pipeline healthy; NRR trending above 120%." },
+    ];
+  }
+  if (c.status === "Needs Attention") {
+    return [
+      { by: c.owner, date: "Sep 22", text: "Spoke to CFO. Cost discipline plan in place, revisit in 30 days." },
+      { by: c.owner, date: "Sep 18", text: "Watching pipeline conversion; October forecast key." },
+    ];
+  }
+  return [
+    { by: c.owner, date: "Sep 22", text: "Spoke to CFO. Cost-reduction plan targets a 30% burn cut by Q4." },
+    { by: c.owner, date: "Sep 20", text: "Flagged Q2 growth deceleration, watching pipeline conversion." },
+  ];
+};
+
+const recentAlertsFor = (c: CompanyData): { severity: "red" | "yellow"; title: string; timestamp: string }[] => {
+  if (c.status === "On Track") return [];
+  if (c.status === "Needs Attention") {
+    return [
+      { severity: "yellow", title: "Runway approaching 12-month threshold", timestamp: "2 hours ago" },
+      { severity: "yellow", title: "Q3 growth guidance revised down", timestamp: "2 days ago" },
+    ];
+  }
+  return [
+    { severity: "red", title: "Runway crossed 6-month threshold", timestamp: "2 hours ago" },
+    { severity: "red", title: "Net burn accelerated 40% WoW", timestamp: "1 day ago" },
+    { severity: "yellow", title: "New cohort churn exceeded 5%", timestamp: "3 days ago" },
+  ];
+};
+
+const statusBorderClass = (status: RiskStatus): string => {
+  if (status === "At Risk") return "border-l-4 border-l-red-500";
+  if (status === "Needs Attention") return "border-l-4 border-l-amber-500";
+  return "border-l-4 border-l-green-500";
+};
 
 const notificationsData: Notification[] = [
   { id: 1, companyName: "Acme Industries Ltd.", description: "Runway dropped below 6 months (now 4.1 mo)", severity: "red", timestamp: "2 hours ago", isRead: false },
@@ -74,7 +149,7 @@ const notificationsData: Notification[] = [
   { id: 6, companyName: "Acme Industries Ltd.", description: "New cohort churn exceeded 5% threshold", severity: "red", timestamp: "2 days ago", isRead: true },
 ];
 
-function TopBar({ onNotificationClick, onLogoClick, onStartTour }: { onNotificationClick?: () => void; onLogoClick?: () => void; onStartTour?: () => void }) {
+function TopBar({ onNotificationClick, onLogoClick, onStartTour, showHelpHint, onDismissHelpHint }: { onNotificationClick?: () => void; onLogoClick?: () => void; onStartTour?: () => void; showHelpHint?: boolean; onDismissHelpHint?: () => void }) {
   return (
     <div className="h-16 border-b border-gray-200 bg-white px-4 sm:px-6 flex items-center justify-between gap-2">
       <button onClick={onLogoClick} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
@@ -91,16 +166,28 @@ function TopBar({ onNotificationClick, onLogoClick, onStartTour }: { onNotificat
       </div>
       <div className="flex-1 md:hidden" />
       <div className="flex items-center gap-3 sm:gap-4">
-        <button
-          data-tour="restart-tour"
-          onClick={onStartTour}
-          className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          title="Take the guided tour"
-          aria-label="Take the guided tour"
-        >
-          <HelpCircle className="w-5 h-5 sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">Take the tour</span>
-        </button>
+        <div className="relative">
+          <button
+            data-tour="restart-tour"
+            onClick={onStartTour}
+            className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Take the guided tour"
+            aria-label="Take the guided tour"
+          >
+            <HelpCircle className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Take the tour</span>
+          </button>
+          {showHelpHint && (
+            <div
+              onClick={onDismissHelpHint}
+              className="absolute right-0 top-full mt-2 w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg z-40 cursor-pointer"
+              role="tooltip"
+            >
+              <div className="absolute -top-1.5 right-4 w-3 h-3 bg-gray-900 rotate-45" />
+              Take the tour from here anytime.
+            </div>
+          )}
+        </div>
         <div className="relative" data-tour="bell">
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" onClick={onNotificationClick}>
             <Bell className="w-5 h-5 text-gray-700" />
@@ -137,10 +224,10 @@ function Avatar({ initials }: { initials: string }) {
 }
 
 // Screen 1: Portfolio Dashboard
-function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, onStartTour }: any) {
+function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, onStartTour, showHelpHint, onDismissHelpHint }: any) {
   return (
     <div className="min-h-screen bg-white">
-      <TopBar onNotificationClick={onNotificationClick} onLogoClick={onLogoClick} onStartTour={onStartTour} />
+      <TopBar onNotificationClick={onNotificationClick} onLogoClick={onLogoClick} onStartTour={onStartTour} showHelpHint={showHelpHint} onDismissHelpHint={onDismissHelpHint} />
       <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3">
         <div className="flex items-center gap-2 text-sm">
           <div className="w-2 h-2 bg-green-500 rounded-full" />
@@ -169,7 +256,7 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
               key={company.id}
               data-tour={company.id === 1 ? "acme-row" : undefined}
               onClick={() => onCompanyClick(company)}
-              className={`w-full text-left bg-white border rounded-lg p-3 hover:bg-gray-50 ${company.status === "At Risk" ? "border-l-4 border-l-red-500 border-gray-200" : "border-gray-200"}`}
+              className={`w-full text-left bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 ${statusBorderClass(company.status)}`}
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="min-w-0 flex-1">
@@ -216,7 +303,7 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
             </thead>
             <tbody>
               {companiesData.map((company) => (
-                <tr key={company.id} data-tour={company.id === 1 ? "acme-row" : undefined} className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${company.status === "At Risk" ? "border-l-4 border-l-red-500" : ""}`} onClick={() => onCompanyClick(company)}>
+                <tr key={company.id} data-tour={company.id === 1 ? "acme-row" : undefined} className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${statusBorderClass(company.status)}`} onClick={() => onCompanyClick(company)}>
                   <td className="px-4 py-4"><button className="text-sm font-medium hover:underline">{company.name}</button></td>
                   <td className="px-4 py-4"><StatusPill status={company.status} /></td>
                   <td className="px-4 py-4">
@@ -257,10 +344,16 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
 }
 
 // Screen 2: Company View
-function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStartTour }: any) {
+function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStartTour }: { company: CompanyData; onBack: () => void; onNotificationClick: () => void; onLogoClick: () => void; onStartTour: () => void }) {
   const [activeAlertPopup, setActiveAlertPopup] = useState<number | null>(null);
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<number>>(new Set());
+  const chartData = chartDataFor(company);
+  const alertDetails = alertDetailsFor(company);
+  const recentAlerts = recentAlertsFor(company);
+  const notes = notesFor(company);
+  const chartDomain = chartDomainFor(company);
   const activeAlert = activeAlertPopup === null ? null : alertDetails.find(a => a.day === activeAlertPopup) ?? null;
+  const chartLineColor = company.status === "At Risk" ? "#dc2626" : company.status === "Needs Attention" ? "#d97706" : "#16a34a";
 
   return (
     <div className="min-h-screen bg-white">
@@ -311,7 +404,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
             <div>
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">AI Summary</p>
               <p className="text-sm leading-relaxed text-gray-800">
-                Revenue growth turned negative in Q2 (-4.2% QoQ). Cash runway now at 4.1 months. Burn multiple climbed to 4.8x, meaning the company is spending $4.80 for every $1 of net new ARR. Recommend immediate review.
+                {summaryFor(company)}
               </p>
             </div>
           </div>
@@ -330,9 +423,30 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
 
         {/* Metric Cards */}
         <div data-tour="metric-tiles" className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
-          <MetricCard title="Revenue Growth" value="-4.2%" status="At Risk" trend="down" direction="down" />
-          <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" direction="down" dataTour="runway-tile" highlight highlightNote="See chart" />
-          <MetricCard title="Burn Multiple" value="4.8x" status="At Risk" trend="up" direction="up" />
+          <MetricCard
+            title="Revenue Growth"
+            value={`${company.revenueGrowth > 0 ? "+" : ""}${company.revenueGrowth.toFixed(1)}%`}
+            status={growthStatus(company.revenueGrowth)}
+            trend={company.revenueGrowth < 0 ? "down" : "up"}
+            direction={company.revenueGrowth < 0 ? "down" : "up"}
+          />
+          <MetricCard
+            title="Runway"
+            value={`${company.runway.toFixed(1)} mo`}
+            status={runwayStatus(company.runway)}
+            trend={company.runway < 12 ? "down" : "up"}
+            direction={company.runway < 12 ? "down" : "up"}
+            dataTour="runway-tile"
+            highlight
+            highlightNote="See chart"
+          />
+          <MetricCard
+            title="Burn Multiple"
+            value={`${company.burnMultiple.toFixed(1)}x`}
+            status={burnStatus(company.burnMultiple)}
+            trend={company.burnMultiple > 2 ? "up" : "down"}
+            direction={company.burnMultiple > 2 ? "up" : "down"}
+          />
         </div>
 
         {/* Chart */}
@@ -355,11 +469,11 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <XAxis dataKey="day" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} domain={[7.2, 9.5]} tickFormatter={(value) => `$${value.toFixed(1)}M`} />
+                <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} domain={chartDomain} tickFormatter={(value) => `$${value.toFixed(1)}M`} />
                 <Line
                   type="monotone"
                   dataKey="balance"
-                  stroke="#dc2626"
+                  stroke={chartLineColor}
                   strokeWidth={2}
                   dot={(props: any) => {
                     const { cx, cy, index, payload } = props;
@@ -396,31 +510,34 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
             </ResponsiveContainer>
           </div>
 
-          <p className="text-xs text-gray-400 mt-2">Tap orange dots to view alert details</p>
+          {alertDetails.length > 0 && (
+            <p className="text-xs text-gray-400 mt-2">Tap orange dots to view alert details</p>
+          )}
         </div>
 
         {/* Notes & History */}
         <div data-tour="notes" className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes &amp; History</h3>
           <div className="space-y-3">
-            <div className="border-l-2 border-gray-200 pl-4 py-2">
-              <p className="text-sm"><span className="font-medium">Sarah Chen</span>, Sep 22: Spoke to CFO. Cost-reduction plan targets a 30% burn cut by Q4.</p>
-            </div>
-            <div className="border-l-2 border-gray-200 pl-4 py-2">
-              <p className="text-sm"><span className="font-medium">Marcus Lee</span>, Sep 20: Flagged Q2 growth deceleration, watching pipeline conversion.</p>
-            </div>
+            {notes.map((note, i) => (
+              <div key={i} className="border-l-2 border-gray-200 pl-4 py-2">
+                <p className="text-sm"><span className="font-medium">{note.by}</span>, {note.date}: {note.text}</p>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Recent Alerts */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Recent Alerts</h3>
-          <div className="space-y-3">
-            <AlertItem severity="red" title="Runway crossed 6-month threshold" timestamp="2 hours ago" />
-            <AlertItem severity="red" title="Net burn accelerated 40% WoW" timestamp="1 day ago" />
-            <AlertItem severity="yellow" title="New cohort churn exceeded 5%" timestamp="3 days ago" />
+        {recentAlerts.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Recent Alerts</h3>
+            <div className="space-y-3">
+              {recentAlerts.map((a, i) => (
+                <AlertItem key={i} severity={a.severity} title={a.title} timestamp={a.timestamp} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Alert detail modal */}
@@ -463,33 +580,39 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStar
   );
 }
 
-function MetricCard({ title, value, status, trend, dataTour, direction, highlight, highlightNote }: { title: string; value: string; status: string; trend: string; dataTour?: string; direction: "up" | "down"; highlight?: boolean; highlightNote?: string }) {
+function MetricCard({ title, value, status, trend, dataTour, direction, highlight, highlightNote }: { title: string; value: string; status: RiskStatus; trend: string; dataTour?: string; direction: "up" | "down"; highlight?: boolean; highlightNote?: string }) {
   const trendData = trend === "up" ? [4, 5, 4.5, 6, 7, 6.5, 8] : trend === "down" ? [8, 7, 7.5, 6, 5, 5.5, 4] : [5, 5.5, 5, 6, 5.5, 6, 5.5];
-  const isBad = status === "At Risk";
-  const arrowColor = isBad ? "text-red-600" : "text-green-600";
+  const isRisk = status === "At Risk";
+  const isWatch = status === "Needs Attention";
+  const valueColor = isRisk ? "text-red-600" : isWatch ? "text-amber-600" : "text-green-600";
+  const arrowColor = valueColor;
+  const strokeColor = isRisk ? "#dc2626" : isWatch ? "#d97706" : "#16a34a";
+  const ringClass = highlight
+    ? isRisk ? "border-red-300 ring-2 ring-red-100"
+      : isWatch ? "border-amber-300 ring-2 ring-amber-100"
+      : "border-green-300 ring-2 ring-green-100"
+    : "border-gray-200";
+  const noteColor = isRisk ? "text-red-600" : isWatch ? "text-amber-600" : "text-green-600";
   const Arrow = direction === "up" ? ArrowUpRight : ArrowDownRight;
   return (
-    <div
-      data-tour={dataTour}
-      className={`border rounded-lg p-3 sm:p-4 ${highlight ? "border-red-300 ring-2 ring-red-100" : "border-gray-200"}`}
-    >
+    <div data-tour={dataTour} className={`border rounded-lg p-3 sm:p-4 ${ringClass}`}>
       <div className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">{title}</div>
       <div className="flex items-end justify-between mb-2">
         <div className="flex items-center gap-0.5 sm:gap-1 min-w-0">
-          <div className={`text-lg sm:text-2xl font-bold truncate ${isBad ? "text-red-600" : "text-gray-900"}`}>{value}</div>
+          <div className={`text-lg sm:text-2xl font-bold truncate ${valueColor}`}>{value}</div>
           <Arrow className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${arrowColor}`} strokeWidth={2.5} />
         </div>
         <div className="hidden sm:block h-8 w-16">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData.map((v, i) => ({ value: v, index: i }))}>
-              <Line type="monotone" dataKey="value" stroke={isBad ? "#dc2626" : "#16a34a"} strokeWidth={1.5} dot={false} />
+              <Line type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={1.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
-      <StatusPill status={status as RiskStatus} />
+      <StatusPill status={status} />
       {highlightNote && (
-        <div className="mt-2 flex items-center gap-1 text-[10px] sm:text-xs text-red-600 font-medium">
+        <div className={`mt-2 flex items-center gap-1 text-[10px] sm:text-xs ${noteColor} font-medium`}>
           {highlightNote}
           <ArrowDownRight className="w-3 h-3" strokeWidth={2.5} />
         </div>
@@ -707,6 +830,7 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [runTour, setRunTour] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [showHelpHint, setShowHelpHint] = useState(false);
 
   const goToDashboard = () => { setCurrentScreen("dashboard"); setShowNotifications(false); };
 
@@ -717,6 +841,10 @@ export default function App() {
       const t = setTimeout(() => setRunTour(true), 600);
       return () => clearTimeout(t);
     }
+    // Returning visitor: nudge the help icon for a few seconds
+    const showT = setTimeout(() => setShowHelpHint(true), 400);
+    const hideT = setTimeout(() => setShowHelpHint(false), 3400);
+    return () => { clearTimeout(showT); clearTimeout(hideT); };
   }, []);
 
   const startTour = () => {
@@ -805,6 +933,8 @@ export default function App() {
           onNotificationClick={() => setShowNotifications(true)}
           onLogoClick={goToDashboard}
           onStartTour={startTour}
+          showHelpHint={showHelpHint}
+          onDismissHelpHint={() => setShowHelpHint(false)}
         />
       )}
       {currentScreen === "company" && selectedCompany && (
