@@ -200,7 +200,7 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, 
         </div>
 
         {/* Desktop: table view */}
-        <div className="hidden md:block border border-gray-200 rounded-lg overflow-x-auto">
+        <div data-tour="companies-table" className="hidden md:block border border-gray-200 rounded-lg overflow-x-auto">
           <table className="w-full min-w-[820px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
