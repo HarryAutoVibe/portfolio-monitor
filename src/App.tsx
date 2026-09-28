@@ -81,14 +81,15 @@ function TopBar({ onNotificationClick, onLogoClick, onStartTour }: { onNotificat
         <div className="w-8 h-8 bg-gray-900 rounded-md flex items-center justify-center">
           <div className="w-4 h-4 border-2 border-white rounded-sm" />
         </div>
-        <span className="text-lg font-semibold text-gray-900">Portfolio Monitor</span>
+        <span className="hidden sm:inline text-lg font-semibold text-gray-900 whitespace-nowrap">Portfolio Monitor</span>
       </button>
-      <div className="flex-1 min-w-0 max-w-xl mx-3 sm:mx-8">
+      <div className="hidden md:block flex-1 min-w-0 max-w-xl mx-3 sm:mx-8">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Search companies..." className="w-full h-10 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
         </div>
       </div>
+      <div className="flex-1 md:hidden" />
       <div className="flex items-center gap-3 sm:gap-4">
         <button
           data-tour="restart-tour"
