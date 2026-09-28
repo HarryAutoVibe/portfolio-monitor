@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Bell,
@@ -9,8 +9,10 @@ import {
   Download,
   ChevronDown,
   X,
+  HelpCircle,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Joyride, STATUS, EVENTS, ACTIONS, type Step, type EventData } from "react-joyride";
 
 // Types
 type RiskStatus = "At Risk" | "Needs Attention" | "On Track";
@@ -67,7 +69,7 @@ const notificationsData: Notification[] = [
   { id: 6, companyName: "Acme Industries Ltd.", description: "New cohort churn exceeded 5% threshold", severity: "red", timestamp: "2 days ago", isRead: true },
 ];
 
-function TopBar({ onNotificationClick, onLogoClick }: { onNotificationClick?: () => void; onLogoClick?: () => void }) {
+function TopBar({ onNotificationClick, onLogoClick, onStartTour }: { onNotificationClick?: () => void; onLogoClick?: () => void; onStartTour?: () => void }) {
   return (
     <div className="h-16 border-b border-gray-200 bg-white px-4 sm:px-6 flex items-center justify-between gap-2">
       <button onClick={onLogoClick} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
@@ -82,8 +84,17 @@ function TopBar({ onNotificationClick, onLogoClick }: { onNotificationClick?: ()
           <input type="text" placeholder="Search companies..." className="w-full h-10 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <div className="relative">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <button
+          data-tour="restart-tour"
+          onClick={onStartTour}
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Take the guided tour"
+        >
+          <HelpCircle className="w-4 h-4" />
+          Take the tour
+        </button>
+        <div className="relative" data-tour="bell">
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" onClick={onNotificationClick}>
             <Bell className="w-5 h-5 text-gray-700" />
           </button>
@@ -119,10 +130,10 @@ function Avatar({ initials }: { initials: string }) {
 }
 
 // Screen 1: Portfolio Dashboard
-function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }: any) {
+function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick, onStartTour }: any) {
   return (
     <div className="min-h-screen bg-white">
-      <TopBar onNotificationClick={onNotificationClick} onLogoClick={onLogoClick} />
+      <TopBar onNotificationClick={onNotificationClick} onLogoClick={onLogoClick} onStartTour={onStartTour} />
       <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3">
         <div className="flex items-center gap-2 text-sm">
           <div className="w-2 h-2 bg-green-500 rounded-full" />
@@ -130,7 +141,7 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }
         </div>
       </div>
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
+        <div data-tour="risk-tabs" className="flex gap-6 overflow-x-auto whitespace-nowrap">
           <button className="text-sm font-semibold text-gray-900 border-b-2 border-gray-900 pb-1">All (47)</button>
           <button className="text-sm text-gray-500 hover:text-gray-900 pb-1">On Track (38)</button>
           <button className="text-sm text-gray-500 hover:text-gray-900 pb-1">Needs Attention (6)</button>
@@ -144,13 +155,13 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }
         </div>
       </div>
       <div className="p-4 sm:p-6">
-        <div className="border border-gray-200 rounded-lg overflow-x-auto">
+        <div data-tour="companies-table" className="border border-gray-200 rounded-lg overflow-x-auto">
           <table className="w-full min-w-[820px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Company Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Risk Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue Growth (QoQ)</th>
+                <th data-tour="metric-cols" className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue Growth (QoQ)</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Runway (mo)</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Burn Multiple</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deal Owner</th>
@@ -160,7 +171,7 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }
             </thead>
             <tbody>
               {companiesData.map((company) => (
-                <tr key={company.id} className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${company.status === "At Risk" ? "border-l-4 border-l-red-500" : ""}`} onClick={() => onCompanyClick(company)}>
+                <tr key={company.id} data-tour={company.id === 1 ? "acme-row" : undefined} className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${company.status === "At Risk" ? "border-l-4 border-l-red-500" : ""}`} onClick={() => onCompanyClick(company)}>
                   <td className="px-4 py-4"><button className="text-sm font-medium hover:underline">{company.name}</button></td>
                   <td className="px-4 py-4"><StatusPill status={company.status} /></td>
                   <td className="px-4 py-4"><span className={`text-sm font-medium ${company.revenueGrowth < 0 ? "text-red-600" : company.revenueGrowth < 10 ? "text-gray-900" : "text-green-600"}`}>{company.revenueGrowth > 0 ? "+" : ""}{company.revenueGrowth.toFixed(1)}%</span></td>
@@ -196,12 +207,12 @@ function PortfolioDashboard({ onCompanyClick, onNotificationClick, onLogoClick }
 }
 
 // Screen 2: Company View
-function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any) {
+function CompanyView({ company, onBack, onNotificationClick, onLogoClick, onStartTour }: any) {
   const [activeAlertPopup, setActiveAlertPopup] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen bg-white">
-      <TopBar onNotificationClick={onNotificationClick} onLogoClick={onLogoClick} />
+      <TopBar onNotificationClick={onNotificationClick} onLogoClick={onLogoClick} onStartTour={onStartTour} />
       <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
           <ArrowLeft className="w-4 h-4" />
@@ -231,7 +242,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
         </div>
 
         {/* AI Summary - highlighted */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <div data-tour="ai-summary" className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-amber-600" />
@@ -246,7 +257,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
         </div>
 
         {/* NL Query Bar */}
-        <div className="mb-6">
+        <div data-tour="nl-query" className="mb-6">
           <div className="relative">
             <input type="text" placeholder="AI assistant — what would you like to know about this company?" className="w-full h-12 pl-4 pr-12 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
             <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg">
@@ -257,14 +268,14 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
         </div>
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div data-tour="metric-tiles" className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <MetricCard title="Revenue Growth (QoQ)" value="-4.2%" status="At Risk" trend="down" />
           <MetricCard title="Runway" value="4.1 mo" status="At Risk" trend="down" />
           <MetricCard title="Burn Multiple" value="4.8x" status="At Risk" trend="up" />
         </div>
 
         {/* Chart */}
-        <div className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 relative">
+        <div data-tour="chart" className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 relative">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Cash Position — Last 30 Days</h3>
             <div className="flex items-center gap-3">
@@ -349,7 +360,7 @@ function CompanyView({ company, onBack, onNotificationClick, onLogoClick }: any)
         </div>
 
         {/* Notes & History */}
-        <div className="mb-6">
+        <div data-tour="notes" className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes &amp; History</h3>
           <div className="space-y-3">
             <div className="border-l-2 border-gray-200 pl-4 py-2">
@@ -457,21 +468,222 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Guided tour steps
+const stepBody = (title: string, body: string) => (
+  <div style={{ textAlign: "left" }}>
+    <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6, color: "#111827" }}>{title}</div>
+    <div style={{ fontSize: 14, lineHeight: 1.55, color: "#374151" }}>{body}</div>
+  </div>
+);
+
+const tourSteps: Step[] = [
+  {
+    target: "body",
+    placement: "center",
+    disableBeacon: true,
+    content: stepBody(
+      "Welcome to Portfolio Monitor",
+      "A portfolio-monitoring surface for institutional investors. Take 90 seconds to see how an analyst uses it."
+    ),
+  },
+  {
+    target: '[data-tour="risk-tabs"]',
+    placement: "bottom",
+    disableBeacon: true,
+    content: stepBody(
+      "Triage by risk",
+      "Companies auto-segment into three tiers by threshold rules. Analysts start each day on \"At Risk\" — the ones needing intervention this week."
+    ),
+  },
+  {
+    target: '[data-tour="companies-table"]',
+    placement: "top",
+    disableBeacon: true,
+    content: stepBody(
+      "Three signals that matter",
+      "Revenue Growth, Runway, and Burn Multiple. Colored inline so the eye finds trouble instantly: red = threshold breached, amber = watch, black = healthy."
+    ),
+  },
+  {
+    target: '[data-tour="acme-row"]',
+    placement: "bottom",
+    disableBeacon: true,
+    content: stepBody(
+      "The worst offender",
+      "Acme is red on all three metrics. Click Next to drill in — we'll walk through the company view together."
+    ),
+  },
+  {
+    target: '[data-tour="ai-summary"]',
+    placement: "bottom",
+    disableBeacon: true,
+    content: stepBody(
+      "One-sentence briefing",
+      "The model reads the underlying signals and writes a plain-English summary. Analysts land on the page and know the situation in five seconds."
+    ),
+  },
+  {
+    target: '[data-tour="nl-query"]',
+    placement: "bottom",
+    disableBeacon: true,
+    content: stepBody(
+      "Ask a follow-up",
+      "Analysts don't stop at the dashboard. Ask \"what changed in Q2?\" or \"which cohort is churning?\" without pinging the data team."
+    ),
+  },
+  {
+    target: '[data-tour="metric-tiles"]',
+    placement: "top",
+    disableBeacon: true,
+    content: stepBody(
+      "The signals up close",
+      "Each metric with its trailing sparkline. Every tile is red — the same threshold logic as the dashboard, applied to this company."
+    ),
+  },
+  {
+    target: '[data-tour="chart"]',
+    placement: "top",
+    disableBeacon: true,
+    content: stepBody(
+      "See the pattern",
+      "30-day cash trajectory. Orange pins mark the moment thresholds were breached. Click a pin for the alert detail."
+    ),
+  },
+  {
+    target: '[data-tour="notes"]',
+    placement: "top",
+    disableBeacon: true,
+    content: stepBody(
+      "Team memory",
+      "What the deal owner heard on the last call. Portfolio decisions live and die on this context — the tool keeps it next to the data."
+    ),
+  },
+  {
+    target: '[data-tour="bell"]',
+    placement: "bottom",
+    disableBeacon: true,
+    content: stepBody(
+      "Push, don't pull",
+      "Alerts fire as thresholds trip. Analysts don't need to check the dashboard to know something changed."
+    ),
+  },
+  {
+    target: "body",
+    placement: "center",
+    disableBeacon: true,
+    content: stepBody(
+      "Take a look around",
+      "Every threshold, alert type, and metric is configurable. Restart the tour anytime from the \"Take the tour\" button in the top bar."
+    ),
+  },
+];
+
+const TOUR_STORAGE_KEY = "pm-tour-seen-v1";
+
 // Main App
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<"dashboard" | "company">("dashboard");
   const [selectedCompany, setSelectedCompany] = useState<CompanyData | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [runTour, setRunTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
   const goToDashboard = () => { setCurrentScreen("dashboard"); setShowNotifications(false); };
 
+  useEffect(() => {
+    let seen = false;
+    try { seen = !!localStorage.getItem(TOUR_STORAGE_KEY); } catch { /* private mode */ }
+    if (!seen) {
+      const t = setTimeout(() => setRunTour(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const startTour = () => {
+    setShowNotifications(false);
+    setCurrentScreen("dashboard");
+    setSelectedCompany(null);
+    setTourStep(0);
+    setRunTour(false);
+    setTimeout(() => setRunTour(true), 100);
+  };
+
+  const finishTour = () => {
+    setRunTour(false);
+    setTourStep(0);
+    try { localStorage.setItem(TOUR_STORAGE_KEY, "1"); } catch { /* private mode */ }
+  };
+
+  const handleTourEvent = (data: EventData) => {
+    const { action, index, status, type } = data;
+
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED || action === ACTIONS.CLOSE || action === ACTIONS.SKIP) {
+      finishTour();
+      return;
+    }
+
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      const next = index + (action === ACTIONS.PREV ? -1 : 1);
+
+      // Cross-screen transitions
+      // Leaving step 3 (Acme row) forward -> navigate into company view
+      if (index === 3 && action === ACTIONS.NEXT) {
+        setSelectedCompany(companiesData[0]);
+        setCurrentScreen("company");
+      }
+      // Going back from step 4 (AI summary) -> return to dashboard
+      if (index === 4 && action === ACTIONS.PREV) {
+        setCurrentScreen("dashboard");
+      }
+
+      // Pause briefly on screen changes so the next target mounts
+      const needsScreenChange = (index === 3 && action === ACTIONS.NEXT) || (index === 4 && action === ACTIONS.PREV);
+      if (needsScreenChange) {
+        setRunTour(false);
+        setTimeout(() => {
+          setTourStep(next);
+          setRunTour(true);
+        }, 300);
+      } else {
+        setTourStep(next);
+      }
+    }
+  };
+
   return (
     <div className="w-full max-w-[1440px] mx-auto bg-white shadow-2xl relative">
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        stepIndex={tourStep}
+        continuous
+        showProgress
+        showSkipButton
+        disableOverlayClose
+        scrollToFirstStep
+        scrollOffset={80}
+        onEvent={handleTourEvent}
+        locale={{ back: "Back", close: "Close", last: "Done", next: "Next", skip: "Skip tour" }}
+        styles={{
+          options: {
+            primaryColor: "#111827",
+            textColor: "#111827",
+            zIndex: 10000,
+            arrowColor: "#ffffff",
+          },
+          tooltip: { borderRadius: 12, padding: 20 },
+          tooltipContent: { fontSize: 14, lineHeight: 1.55, padding: 0, textAlign: "left" as const },
+          buttonNext: { backgroundColor: "#111827", borderRadius: 6, fontSize: 13, padding: "8px 14px" },
+          buttonBack: { color: "#6b7280", fontSize: 13, marginRight: 8 },
+          buttonSkip: { color: "#9ca3af", fontSize: 13 },
+        }}
+      />
       {currentScreen === "dashboard" && (
         <PortfolioDashboard
           onCompanyClick={(company: CompanyData) => { setSelectedCompany(company); setCurrentScreen("company"); }}
           onNotificationClick={() => setShowNotifications(true)}
           onLogoClick={goToDashboard}
+          onStartTour={startTour}
         />
       )}
       {currentScreen === "company" && selectedCompany && (
@@ -480,6 +692,7 @@ export default function App() {
           onBack={() => setCurrentScreen("dashboard")}
           onNotificationClick={() => setShowNotifications(true)}
           onLogoClick={goToDashboard}
+          onStartTour={startTour}
         />
       )}
       {showNotifications && <NotificationPanel onClose={() => setShowNotifications(false)} />}
